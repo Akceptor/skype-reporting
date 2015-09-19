@@ -16,6 +16,7 @@ import com.skype.SkypeException;
 
 public class ReportMessageAdapter extends ChatMessageAdapter {
 	private final static Logger LOGGER = Logger.getLogger(ReportMessageAdapter.class);
+	private static final String REGULAR_EXPRESSION_FOR_NAME = "^\\[([^\\]]*)\\]"; //$NON-NLS-1$
 	static boolean isSentToday = false;
 
 	@Override
@@ -46,13 +47,12 @@ public class ReportMessageAdapter extends ChatMessageAdapter {
 	 */
 	@SuppressWarnings("static-method")
 	StatusMessageBean prepareStatusMessageBean(ChatMessage received) throws SkypeException {
-		// TODO remove that ugly substring stuff. Use RegExp instead
-		Pattern pattern = Pattern.compile("^\\[([^\\]]*)\\]"); //$NON-NLS-1$
+		Pattern pattern = Pattern.compile(REGULAR_EXPRESSION_FOR_NAME);
 		Matcher matcher = pattern.matcher(received.getContent().trim());
 		if (matcher.find()) {
 			String username = matcher.group(1);
 			return new StatusMessageBean(received, username,
-					received.getContent().trim().substring(("[" + username + "]").length()).trim()); //$NON-NLS-1$//$NON-NLS-2$
+					received.getContent().replaceFirst(REGULAR_EXPRESSION_FOR_NAME, "").trim()); //$NON-NLS-1$
 		} else {
 			return new StatusMessageBean(received, received.getSenderId(), received.getContent());
 		}

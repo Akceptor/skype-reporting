@@ -38,7 +38,15 @@ public class App {
 						received.getSender().send("Sorry, you are not permitted to access this service"); //$NON-NLS-1$
 					} else {
 						if (!isSentToday) {
-							processStatus(received);
+							// Check if status contains command
+							if (received.getContent().startsWith("[")) { //$NON-NLS-1$
+								String str = received.getContent().substring(1);
+								String username = str.substring(0, str.indexOf("]")); //$NON-NLS-1$
+								processStatus(received, username,
+										received.getContent().substring(received.getContent().indexOf("]") + 1).trim()); //$NON-NLS-1$
+							} else {
+								processStatus(received, received.getSenderId(), received.getContent());
+							}
 						} else {
 							received.getSender().send("Sorry, your status for today was already submitted"); //$NON-NLS-1$
 						}
@@ -64,8 +72,8 @@ public class App {
 		}
 	}
 
-	static void processStatus(ChatMessage received) throws SkypeException {
-		statuses.put(received.getSenderId(), received.getContent());
+	static void processStatus(ChatMessage received, String senderId, String content) throws SkypeException {
+		statuses.put(senderId, content);
 		LOGGER.info("Received " + statuses.size() + " statuses for " + allowedUsers.size() + " users"); //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
 		if (statuses.size() == allowedUsers.size()) {// last user
 			String totalStatus = buildStatus(statuses);

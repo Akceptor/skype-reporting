@@ -7,17 +7,58 @@
 	<version>1.0-SNAPSHOT</version>
 	<name>skype-reporting</name>
 	<url>http://maven.apache.org</url>
+
+	<build>
+		<defaultGoal>package</defaultGoal>
+		<plugins>
+			<plugin>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>1.7.1</version>
+				<configuration>
+					<finalName>${project.artifactId}</finalName>
+					<outputDirectory>${project.build.directory}/${project.artifactId}</outputDirectory>
+					<transformers>
+						<transformer
+							implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+							<mainClass>org.asg.report.App</mainClass>
+						</transformer>
+					</transformers>
+					<createDependencyReducedPom>false</createDependencyReducedPom>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+
+	</build>
+
+
 	<dependencies>
+		<!-- test -->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>3.8.1</version>
 			<scope>test</scope>
+			<version>4.12</version>
 		</dependency>
+
+		<!-- compile -->
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.17</version>
+		</dependency>
+
 		<dependency>
 			<groupId>com.github.taksan</groupId>
 			<artifactId>skype-java-api</artifactId>
-			<version>1.1</version>
+			<version>1.7</version>
 		</dependency>
 
 	</dependencies>

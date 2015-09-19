@@ -5,6 +5,8 @@ import static org.asg.report.App.allowedUsers;
 import static org.asg.report.App.statuses;
 
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
@@ -24,7 +26,8 @@ public class ReportMessageAdapter extends ChatMessageAdapter {
 				received.getSender().send("Sorry, you are not permitted to access this service"); //$NON-NLS-1$
 			} else {
 				if (!isSentToday) {
-					checkIfContainsCommandAndProcess(received);
+					StatusMessageBean smBean = prepareStatusMessageBean(received);
+					processStatus(smBean);
 				} else {
 					received.getSender().send("Sorry, your status for today was already submitted"); //$NON-NLS-1$
 				}
@@ -38,19 +41,20 @@ public class ReportMessageAdapter extends ChatMessageAdapter {
 	 * 
 	 * @param received
 	 *            Skype message
+	 * @return
 	 * @throws SkypeException
 	 */
 	@SuppressWarnings("static-method")
-	private void checkIfContainsCommandAndProcess(ChatMessage received) throws SkypeException {
-		if (received.getContent().startsWith("[")) { //$NON-NLS-1$
-			// TODO remove that ugly substring stuff. Use RegExp instead
-
-			String str = received.getContent().substring(1);
-			String username = str.substring(0, str.indexOf("]")); //$NON-NLS-1$
-			processStatus(received, username,
-					received.getContent().substring(received.getContent().indexOf("]") + 1).trim()); //$NON-NLS-1$
+	StatusMessageBean prepareStatusMessageBean(ChatMessage received) throws SkypeException {
+		// TODO remove that ugly substring stuff. Use RegExp instead
+		Pattern pattern = Pattern.compile("^\\[([^\\]]*)\\]"); //$NON-NLS-1$
+		Matcher matcher = pattern.matcher(received.getContent().trim());
+		if (matcher.find()) {
+			String username = matcher.group(1);
+			return new StatusMessageBean(received, username,
+					received.getContent().trim().substring(("[" + username + "]").length()).trim()); //$NON-NLS-1$//$NON-NLS-2$
 		} else {
-			processStatus(received, received.getSenderId(), received.getContent());
+			return new StatusMessageBean(received, received.getSenderId(), received.getContent());
 		}
 	}
 
@@ -58,32 +62,22 @@ public class ReportMessageAdapter extends ChatMessageAdapter {
 	 * Processes status message and puts it into the statuses map
 	 * 
 	 * @param received
-	 *            {@link ChatMessage} containing current user status
-	 * @param senderId
-	 *            sender's Skype name. Normally it is retrieved from the
-	 *            {@link ChatMessage} but also could be specified via [username]
-	 *            construction (in case we need to send message on behalf
-	 *            different user)
-	 * @param content
-	 *            sender's status message Normally it is retrieved from the
-	 *            {@link ChatMessage} but should be specified if [username]
-	 *            construction is used (to remove [username] clause from the
-	 *            message)
+	 *            {@link StatusMessageBean} containing current user data
 	 * @throws SkypeException
 	 */
-	static void processStatus(ChatMessage received, String senderId, String content) throws SkypeException {
-		statuses.put(senderId, content);
+	static void processStatus(StatusMessageBean received) throws SkypeException {
+		statuses.put(received.getSender(), received.getContent());
 		LOGGER.info("Received " + statuses.size() + " statuses for " + allowedUsers.size() + " users"); //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
 		if (statuses.size() == allowedUsers.size()) {// last user
 			String totalStatus = buildStatus(statuses);
 			LOGGER.info("\n" + totalStatus); //$NON-NLS-1$
-			received.getSender().send(totalStatus);
+			received.getFullMessage().getSender().send(totalStatus);
 			statuses.clear();
 			isSentToday = true;
 		} else {
 			String savedMessage = "Status saved: " + received.getContent();//$NON-NLS-1$
 			LOGGER.info(savedMessage);
-			received.getSender().send(savedMessage);
+			received.getFullMessage().getSender().send(savedMessage);
 		}
 	}
 

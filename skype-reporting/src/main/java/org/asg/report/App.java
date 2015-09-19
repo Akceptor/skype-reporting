@@ -2,6 +2,7 @@ package org.asg.report;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import com.skype.ChatMessage;
@@ -10,24 +11,19 @@ import com.skype.Skype;
 import com.skype.SkypeException;
 
 /**
- * Hello world!
- *
+ * Skype status sender :)
  */
 public class App {
 
-	@SuppressWarnings("nls")
-	static Map<String, String> NICKNAMES = new HashMap<String, String>() {
-		{
-			put("akceptor.motofan.ru", "VO");
-			put("yankolyaspas", "MY");
-		}
-	};
-	static Set<String> allowedUsers = NICKNAMES.keySet();
+	static Map<String, String> NICKNAMES = new HashMap<String, String>();
+	static Set<String> allowedUsers;
 	static Map<String, String> statuses = new HashMap<String, String>();
 
 	public static void main(String[] args) throws SkypeException {
 		System.out.println("Please, bring Skype to foreground!"); //$NON-NLS-1$
+		loadProperties();
 		Skype.setDaemon(false); // to prevent exiting from this program
+		Skype.setDebug(true);
 
 		Skype.addChatMessageListener(new ChatMessageAdapter() {
 			@Override
@@ -45,6 +41,21 @@ public class App {
 
 	}
 
+	private static void loadProperties() {
+		Properties properties = new Properties();
+		try {
+			properties.load(App.class.getClassLoader().getResourceAsStream("users.properties")); //$NON-NLS-1$
+			for (String key : properties.stringPropertyNames()) {
+				String value = properties.getProperty(key);
+				NICKNAMES.put(key, value);
+			}
+			allowedUsers = NICKNAMES.keySet();
+		} catch (Exception exception) {
+			// TODO
+			exception.printStackTrace();
+		}
+	}
+
 	static void processStatus(ChatMessage received) throws SkypeException {
 		statuses.put(received.getSenderId(), received.getContent());
 		if (statuses.size() == allowedUsers.size()) {// last user
@@ -55,7 +66,7 @@ public class App {
 			System.out.println("Received " + statuses.size() + " statuses for " + allowedUsers.size() + " users"); //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
 			received.getSender().send("Status saved: " + received.getContent()); //$NON-NLS-1$
 		}
-		System.out.println(statuses);
+		System.out.println(buildStatus(statuses));
 	}
 
 	private static String buildStatus(Map<String, String> userStatuses) {

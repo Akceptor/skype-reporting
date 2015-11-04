@@ -14,5 +14,4 @@ public class CleanJob implements Job {
 		ReportMessageAdapter.isSentToday = false; // Remove 'sent' flag
 		LOGGER.info("Status Queue was just cleared"); //$NON-NLS-1$
 	}
-
 }
